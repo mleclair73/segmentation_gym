@@ -36,6 +36,7 @@ from tqdm import tqdm
 from joblib import Parallel, delayed
 from natsort import natsorted
 import matplotlib.pyplot as plt
+from utils.apple_silicon import is_apple_silicon
 
 from doodleverse_utils.imports import *
 import random
@@ -97,11 +98,13 @@ else:
 
 if USE_GPU == True:
 
-    ## this could be a bad idea - at least on windows, it reorders the gpus in a way you dont want
-    if SET_PCI_BUS_ID:
-        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+    if not is_apple_silicon:
+        ## this could be a bad idea - at least on windows, it reorders the gpus in a way you dont want
+        if SET_PCI_BUS_ID:
+            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
-    os.environ['CUDA_VISIBLE_DEVICES'] = SET_GPU
+        # For CUDA GPUs
+        os.environ['CUDA_VISIBLE_DEVICES'] = SET_GPU
 
     from doodleverse_utils.imports import *
     # from tensorflow.python.client import device_lib
@@ -128,7 +131,7 @@ for i in physical_devices:
     tf.config.experimental.set_memory_growth(i, True)
 print(tf.config.get_visible_devices())
 
-if USE_MULTI_GPU:
+if USE_MULTI_GPU and not is_apple_silicon:
     # Create a MirroredStrategy.
     strategy = tf.distribute.MirroredStrategy([p.name.split('/physical_device:')[-1] for p in physical_devices], cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())
     print("Number of distributed devices: {}".format(strategy.num_replicas_in_sync))

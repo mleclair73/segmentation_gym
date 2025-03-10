@@ -3,3 +3,6 @@ unet/*report.txt
 unet/__pycache__/*
 unet/future_functions/*
 unet/src/__pycache__/*
+.DS_Store
+.python-version
+my_segmentation_gym*/**

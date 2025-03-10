@@ -30,6 +30,7 @@ from tkinter import *
 from random import shuffle
 import pandas as pd
 from skimage.transform import resize
+from utils.apple_silicon import is_apple_silicon
 
 ###############################################################
 ## VARIABLES
@@ -146,7 +147,7 @@ for counter, (configfile, weights, data_path, val_data_path) in enumerate(zip(C,
         print('Warning: using CPU - model training will be slow')
 
     if len(SET_GPU.split(','))>1:
-        USE_MULTI_GPU = True 
+        USE_MULTI_GPU = True
         print('Using multiple GPUs')
     else:
         USE_MULTI_GPU = False
@@ -157,10 +158,12 @@ for counter, (configfile, weights, data_path, val_data_path) in enumerate(zip(C,
 
     if USE_GPU == True:
 
-        ## this could be a bad idea - at least on windows, it reorders the gpus in a way you dont want
-        if SET_PCI_BUS_ID:
-            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+        if not is_apple_silicon:
+            ## this could be a bad idea - at least on windows, it reorders the gpus in a way you dont want
+            if SET_PCI_BUS_ID:
+                os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
+        # For CUDA GPUs
         os.environ['CUDA_VISIBLE_DEVICES'] = SET_GPU
 
         from doodleverse_utils.imports import *
@@ -183,7 +186,7 @@ for counter, (configfile, weights, data_path, val_data_path) in enumerate(zip(C,
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
         print(physical_devices)
 
-    if MODEL!='segformer':
+    if MODEL!='segformer' and not is_apple_silicon:
         ### mixed precision
         from tensorflow.keras import mixed_precision
         try:
@@ -197,7 +200,7 @@ for counter, (configfile, weights, data_path, val_data_path) in enumerate(zip(C,
         tf.config.experimental.set_memory_growth(i, True)
     print(tf.config.get_visible_devices())
 
-    if USE_MULTI_GPU:
+    if USE_MULTI_GPU and not is_apple_silicon:
         # Create a MirroredStrategy.
         strategy = tf.distribute.MirroredStrategy([p.name.split('/physical_device:')[-1] for p in physical_devices], cross_device_ops=tf.distribute.HierarchicalCopyAllReduce())
         print("Number of distributed devices: {}".format(strategy.num_replicas_in_sync))
@@ -779,7 +782,7 @@ for counter, (configfile, weights, data_path, val_data_path) in enumerate(zip(C,
 
     print('.....................................')
     print('Creating and compiling model ...')
-    if USE_MULTI_GPU:
+    if USE_MULTI_GPU and not is_apple_silicon:
         with strategy.scope():
             model = get_model(for_model_save=False)
 

@@ -27,6 +27,7 @@ import sys,os, json
 from tqdm import tqdm
 from tkinter import filedialog, messagebox
 from tkinter import *
+from utils.apple_silicon import is_apple_silicon
 
 profile = 'meta' # meta + predseg
 # profile = 'minimal' # predseg
@@ -238,12 +239,13 @@ if __name__ == "__main__":
                     print('Using single CPU device')
 
             if USE_GPU == True:
+                if not is_apple_silicon:
+                    ## this could be a bad idea - at least on windows, it reorders the gpus in a way you dont want
+                    if SET_PCI_BUS_ID:
+                        os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 
-                ## this could be a bad idea - at least on windows, it reorders the gpus in a way you dont want
-                if SET_PCI_BUS_ID:
-                    os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-
-                os.environ['CUDA_VISIBLE_DEVICES'] = SET_GPU
+                    # For CUDA GPUs
+                    os.environ['CUDA_VISIBLE_DEVICES'] = SET_GPU
 
                 from doodleverse_utils.imports import *
                 from tensorflow.python.client import device_lib
@@ -265,7 +267,7 @@ if __name__ == "__main__":
                 physical_devices = tf.config.experimental.list_physical_devices('GPU')
                 print(physical_devices)
 
-            if MODEL!='segformer':
+            if MODEL!='segformer' and not is_apple_silicon:
                 ### mixed precision
                 from tensorflow.keras import mixed_precision
                 try:
